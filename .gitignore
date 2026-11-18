@@ -1,0 +1,29 @@
+# Credenziali e configurazione locale
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dipendenze, build e risultati di test
+node_modules/
+dist/
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+.cache/
+*.log
+
+# Profili temporanei, editor e sistema operativo
+.decision-probe-*/
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

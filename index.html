@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://openrouter.ai; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="Prova Microsoft Decision 1.1 con testo e immagini. Esplora probabilità, punteggi e soglie di revisione.">
+  <title>Decision Playground</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#editor-title">Vai all’editor</a>
+  <header class="site-header">
+    <div class="shell topbar">
+      <a class="wordmark" href="./"><span class="brand-mark" aria-hidden="true"></span>Decision Playground</a>
+      <div class="top-actions">
+        <a class="docs-link" href="https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request" target="_blank" rel="noopener noreferrer">Documentazione <span aria-hidden="true">↗</span></a>
+        <button id="open-key" class="button button-secondary key-button" type="button"><span class="status-dot" aria-hidden="true"></span><span id="key-label">Chiave API</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <h1 id="page-title">Prova Microsoft<br>Decision 1.1</h1>
+        <p>Valuta testo e immagini con domande sì/no, scelte e punteggi. Esplora le probabilità e decidi quando un risultato merita revisione.</p>
+      </div>
+      <div class="hero-plot" aria-hidden="true">
+        <div class="plot-axis"></div>
+        <div class="plot-bar plot-bar-a"></div>
+        <div class="plot-bar plot-bar-b"></div>
+        <div class="plot-bar plot-bar-c"></div>
+        <div class="plot-bar plot-bar-d"></div>
+      </div>
+    </section>
+
+    <section class="preset-section" aria-labelledby="samples-title">
+      <h2 id="samples-title">Parti da un esempio</h2>
+      <div class="presets" role="group" aria-labelledby="samples-title">
+        <button class="preset" type="button" data-preset="clear" aria-pressed="true">
+          <span class="preset-icon icon-ticket" aria-hidden="true"></span>
+          <span><strong>Ticket chiaro</strong><small>Smistamento, gravità e ricontatto</small></span>
+        </button>
+        <button class="preset" type="button" data-preset="ambiguous" aria-pressed="false">
+          <span class="preset-icon icon-ambiguous" aria-hidden="true">?</span>
+          <span><strong>Ticket ambiguo</strong><small>Stesse domande, meno certezza</small></span>
+        </button>
+        <button class="preset" type="button" data-preset="image" aria-pressed="false">
+          <span class="preset-icon icon-image" aria-hidden="true"></span>
+          <span><strong>Cerchio rosso</strong><small>Riconoscimento di colore e forma</small></span>
+        </button>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel" aria-labelledby="editor-title">
+        <div class="panel-heading"><h2 id="editor-title" tabindex="-1">Editor</h2></div>
+        <form id="editor" novalidate>
+          <div class="editor-actions">
+            <div class="actions-row">
+              <button id="run" class="button button-primary" type="submit"><span aria-hidden="true">▶</span> Esegui decisione</button>
+              <button id="sample" class="button button-secondary" type="button">Guarda un risultato di esempio</button>
+              <button id="cancel" class="button button-secondary" type="button" hidden>Annulla</button>
+            </div>
+            <p class="hint">L’esecuzione live invia il contesto e le domande a OpenRouter.</p>
+            <p id="run-feedback" class="feedback" role="status" aria-atomic="true" tabindex="-1" hidden></p>
+          </div>
+          <fieldset class="editor-section">
+            <legend>Contesto</legend>
+            <div class="segmented">
+              <label><input type="radio" name="context-mode" value="text"><span>Testo</span></label>
+              <label><input type="radio" name="context-mode" value="json" checked><span>JSON</span></label>
+              <label><input type="radio" name="context-mode" value="images"><span>Immagini</span></label>
+            </div>
+            <label id="context-label" class="field-label" for="context">Contenuto JSON</label>
+            <textarea id="context" rows="5" spellcheck="false"></textarea>
+            <div id="images-panel" hidden>
+              <label class="field-label" for="images">Immagini locali</label>
+              <input id="images" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple aria-describedby="image-hint">
+              <p id="image-hint" class="hint">Da 1 a 8 PNG o JPEG. Ogni lato deve misurare da 280 a 1.568 px.</p>
+              <p id="image-feedback" class="feedback" role="status" hidden></p>
+              <button id="discard-images" class="button button-text" type="button" hidden>Scarta ultima selezione</button>
+              <ul id="image-list" class="image-list"></ul>
+            </div>
+          </fieldset>
+          <fieldset class="editor-section questions-section">
+            <legend>Domande</legend>
+            <div id="questions"></div>
+            <button id="add-question" class="button button-secondary" type="button"><span aria-hidden="true">＋</span> Aggiungi domanda</button>
+          </fieldset>
+        </form>
+      </section>
+
+      <section class="panel result-panel" aria-labelledby="results-title">
+        <div class="panel-heading">
+          <h2 id="results-title" tabindex="-1">Risultati</h2>
+          <span id="result-source" class="pill pill-demo">Esempio registrato</span>
+        </div>
+        <div class="threshold">
+          <div class="threshold-head">
+            <label for="threshold">Soglia di revisione</label>
+            <output id="threshold-value" for="threshold">80%</output>
+          </div>
+          <input id="threshold" type="range" min="50" max="100" value="80" aria-describedby="threshold-hint">
+          <p id="threshold-hint" class="hint">Sotto soglia, l’esito va in revisione. Il cursore non invia nuove richieste.</p>
+        </div>
+        <p id="modified" class="changed" role="status" hidden>Input modificato. Il risultato si riferisce all’input mostrato nel JSON della richiesta.</p>
+        <div id="results" class="result-list"></div>
+        <div id="diagnostics" class="diagnostics" hidden>
+          <dl id="metadata" class="metadata"></dl>
+          <details class="json-panel" data-json="request">
+            <summary>JSON della richiesta</summary>
+            <button class="button button-secondary" type="button" data-copy="request">Copia richiesta</button>
+            <pre></pre>
+          </details>
+          <details class="json-panel" data-json="response">
+            <summary>JSON della risposta</summary>
+            <button class="button button-secondary" type="button" data-copy="response">Copia risposta</button>
+            <pre></pre>
+          </details>
+          <p id="copy-feedback" class="hint" role="status"></p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="key-dialog" aria-labelledby="key-title">
+    <form id="key-form" autocomplete="off" novalidate>
+      <div class="dialog-heading"><h2 id="key-title">Chiave OpenRouter</h2><button id="close-key" class="button button-secondary icon-button" type="button" aria-label="Chiudi">×</button></div>
+      <p>La chiave resta nella pagina fino al ricaricamento e viene usata solo per autenticarti su OpenRouter.</p>
+      <label class="field-label" for="api-key">Chiave API</label>
+      <div class="key-field">
+        <input type="password" id="api-key" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="key-feedback" autofocus>
+        <button id="toggle-key" class="button button-secondary" type="button">Mostra</button>
+      </div>
+      <p id="key-feedback" class="feedback" role="status" hidden></p>
+      <div class="dialog-actions">
+        <button class="button button-primary" type="submit">Usa chiave</button>
+        <button id="forget-key" class="button button-secondary" type="button" hidden>Rimuovi chiave</button>
+        <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">Ottieni una chiave <span aria-hidden="true">↗</span></a>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
