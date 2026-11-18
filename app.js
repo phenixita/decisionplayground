@@ -583,3 +583,30 @@ find('diagnostics').addEventListener('click', async event => {
 
 loadPreset(selectedPreset);
 showExample();
+
+const installButton = find('install-app');
+let installPrompt;
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  installPrompt = event;
+  installButton.hidden = false;
+});
+installButton.addEventListener('click', async () => {
+  const prompt = installPrompt;
+  installPrompt = undefined;
+  installButton.hidden = true;
+  try {
+    await prompt?.prompt();
+  } catch {
+    // The browser menu remains available if the prompt expires.
+  }
+});
+window.addEventListener('appinstalled', () => {
+  installPrompt = undefined;
+  installButton.hidden = true;
+});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(error => {
+    console.warn('Impossibile attivare la modalità offline.', error.name);
+  });
+}
